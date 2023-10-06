@@ -1,0 +1,16 @@
+.idea
+.scannerwork
+.env
+.yarn
+!.yarn/releases/
+!.yarn/plugins
+.jest-cache
+.pnp.*
+build
+node_modules
+*.orig
+~*.xlsx
+~*.docx
+tmp
+_deprecated
+screenshots
