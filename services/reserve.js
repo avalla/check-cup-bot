@@ -65,7 +65,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     const address = (await appuntamento.$eval('.captionAppointment-address', (el) => el.getAttribute('data-address')))
       .replace('\n', '')
       .replace('null', 'N/A');
-    const zip = result.appuntamenti[0].address.split(' ').findLast(item => /[0-9]{5}/.test(item));
+    const zip = address.split(' ').findLast(item => /[0-9]{5}/.test(item));
     const date = parse(data, 'EEEE d MMMM yyyy HH:mm', new Date(), { locale });
     const difference = differenceInCalendarDays(date, new Date());
     const isNear = !/101[0-9]{2}/.test(zip);

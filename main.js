@@ -72,7 +72,7 @@ bot.onText(
         chatId,
         `Tra circa ${Math.round(
           (randomMinutes * randomSeconds) / 60
-        )} minuti proverò a cercare un appuntamento per la ricetta ${ricetta} tentativo ${counter}`
+        )} minuti proverò a cercare un appuntamento per la ricetta ${ricetta} tentativo ${counter+1}`
       );
       await new Promise((r) => setTimeout(r, randomMinutes * randomSeconds * 1_000));
       counter++;
