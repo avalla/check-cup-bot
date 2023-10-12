@@ -24,7 +24,7 @@ function printMsgInfo(msg) {
 
   const { username, first_name, last_name } = msg.from;
   console.log(
-    `${format(msg.date, 'd MMMM yyyy H:mm', { locale })}: "${
+    `${format(msg.date*1000, 'd MMMM yyyy H:mm', { locale })}: "${
       msg.text
     }" in ${chatId} from @${username} (${first_name} ${last_name})`
   );

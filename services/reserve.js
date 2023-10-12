@@ -36,6 +36,10 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await page.click(
     'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:ePrescriptionSearchForm:nreButton_button"]'
   );
+  // TODO: check alert _ricettaelettronica_WAR_cupprenotazione_:allMsgs
+  // #_ricettaelettronica_WAR_cupprenotazione_:j_idt10:0:_t11
+
+
   await page.waitForSelector(
     'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]'
   );
@@ -61,13 +65,15 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     const address = (await appuntamento.$eval('.captionAppointment-address', (el) => el.getAttribute('data-address')))
       .replace('\n', '')
       .replace('null', 'N/A');
-    const date = parse(data, 'EEEE d MMMM yyyy hh:mm', new Date(), { locale });
+    const zip = result.appuntamenti[0].address.split(' ').findLast(item => /[0-9]{5}/.test(item));
+    const date = parse(data, 'EEEE d MMMM yyyy HH:mm', new Date(), { locale });
     const difference = differenceInCalendarDays(date, new Date());
+    const isNear = !/101[0-9]{2}/.test(zip);
     if (difference === 0) {
       console.log(`${numeroRicetta} C'è poco tempo...`);
     }
-    const isGood = difference > 0 && difference <= 90;
-    const friendlyDate = format(date, 'EEEE d MMMM yyyy hh:mm', { locale });
+    const isGood = difference > 0 && difference <= 30 && isNear;
+    const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
     }
