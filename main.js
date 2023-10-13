@@ -66,9 +66,6 @@ bot.onText(
         result = await reserve({ cf, ricetta, counter });
       } catch (error) {
         await bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
-        if (result.image) {
-          await bot.sendPhoto(chatId, result.image);
-        }
         console.error(error);
       }
       await bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);

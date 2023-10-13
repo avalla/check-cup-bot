@@ -16,7 +16,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
 async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   console.log(`Cerco di prenotare ${cf} ${numeroRicetta} tentativo ${counter}`);
   const browser = await puppeteer.launch({
-    headless: false, //'new',
+    headless: 'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -32,6 +32,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
+  await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
   await page.click(
     'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:ePrescriptionSearchForm:nreButton_button"]'
