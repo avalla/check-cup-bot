@@ -23,6 +23,27 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   const page = await browser.newPage();
   page.setDefaultNavigationTimeout(2 * 60_000);
   page.setDefaultTimeout(2 * 60_000);
+
+  async function nextPage(counter = 0) {
+    const [prosegui] = await page.$$('span[aria-describedby="Prosegui"] button');
+    if (prosegui) {
+      await page.click('span[aria-describedby="Prosegui"] button');
+    }
+    const [avanti] = await page.$$('span[aria-describedby="Avanti"] button');
+    if (avanti) {
+      await page.click('span[aria-describedby="Avanti"] button');
+    }
+
+    await new Promise((r) => setTimeout(r, 5_000));
+    const [warning] = await page.$$('.messagifyMsg.alert-danger span');
+    if (warning && counter < 10) {
+      const message = await warning?.evaluate((el) => el.textContent);
+      console.log(`${numeroRicetta} message`);
+      console.log(message)
+      return nextPage(page, counter + 1);
+    }
+  }
+
   const result = {
     info: undefined,
     confirmed: undefined,
@@ -34,11 +55,8 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
-  await page.click('span[aria-describedby="Avanti"] button');
 
-  // TODO: check alert _ricettaelettronica_WAR_cupprenotazione_:allMsgs
-  // #_ricettaelettronica_WAR_cupprenotazione_:j_idt10:0:_t11
-
+  await nextPage();
 
   await page.waitForSelector(
     'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]'
@@ -48,9 +66,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
   result.image = await page.screenshot({ fullPage: true });
-  await page.click(
-    'button[name="_ricettaelettronica_WAR_cupprenotazione_:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]'
-  );
+  await nextPage();
   await page.waitForSelector('[name="_ricettaelettronica_WAR_cupprenotazione_:appuntamentiForm"],.no-available');
   result.image = await page.screenshot({ fullPage: true });
   await page.click('span[aria-describedby="Altre disponibilità"] button');
