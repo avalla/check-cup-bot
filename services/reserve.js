@@ -68,11 +68,24 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     const zip = address.split(' ').findLast(item => /[0-9]{5}/.test(item));
     const date = parse(data, 'EEEE d MMMM yyyy HH:mm', new Date(), { locale });
     const difference = differenceInCalendarDays(date, new Date());
-    const isNear = /101[0-9]{2}/.test(zip);
-    if (difference === 0) {
-      console.log(`${numeroRicetta} C'è poco tempo...`);
+    if (numeroRicetta === '010A24768440188') {
+      const isNear = /101[0-9]{2}/.test(zip);
+      if (difference === 0) {
+        console.log(`${numeroRicetta} C'è poco tempo...`);
+      }
+      const isGood = difference > 3 && difference <= 30 && isNear;
+      const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
+      if (!isGood) {
+        console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
+      }
+      result.appuntamenti.push({
+        isGood,
+        date,
+        address,
+      });
+      continue;
     }
-    const isGood = difference > 0 && difference <= 30 && isNear;
+    const isGood = difference > 0 && difference <= 60;
     const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
