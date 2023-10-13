@@ -34,9 +34,8 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
-  await page.click(
-    'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:ePrescriptionSearchForm:nreButton_button"]'
-  );
+  await page.click('span[aria-describedby="Avanti"] button');
+
   // TODO: check alert _ricettaelettronica_WAR_cupprenotazione_:allMsgs
   // #_ricettaelettronica_WAR_cupprenotazione_:j_idt10:0:_t11
 

@@ -68,7 +68,9 @@ bot.onText(
         await bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
         console.error(error);
       }
-      await bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
+      if (result) {
+        await bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
+      }
       await bot.sendMessage(
         chatId,
         `Tra circa ${Math.round(
