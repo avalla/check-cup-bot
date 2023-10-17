@@ -16,7 +16,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
 async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   console.log(`Cerco di prenotare ${cf} ${numeroRicetta} tentativo ${counter}`);
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: false, //'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -131,6 +131,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     return result;
   }
   console.log(`${numeroRicetta} Ho trovato qualcosa...`);
+  console.log(found);
   await page.click('span[aria-describedby="Avanti"] button');
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
@@ -140,6 +141,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
   result.confirmed = found;
+  await browser.close();
   return result;
 }
 
