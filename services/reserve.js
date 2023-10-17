@@ -10,11 +10,13 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * Reserve
  * @param cf
  * @param numeroRicetta
+ * @param phone
+ * @param email
  * @param counter
  * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean}], confirmed: {date: Date, address: string, isGood: boolean}, images: [Buffer], info: string}>}
  */
-async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
-  console.log(`Cerco di prenotare ${cf} ${numeroRicetta} tentativo ${counter}`);
+async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }) {
+  console.log(`Cerco di prenotare ${cf} ${numeroRicetta} ${phone} ${email} tentativo ${counter}`);
   const browser = await puppeteer.launch({
     headless: 'new',
     args: [`--window-size=1920,1080`],
