@@ -26,7 +26,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: false, //'new',
+    headless: 'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
