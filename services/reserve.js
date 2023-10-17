@@ -33,6 +33,10 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     if (avanti) {
       await page.click('span[aria-describedby="Avanti"] button');
     }
+    const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
+    if (conferma) {
+      await page.click('span[aria-describedby="Conferma"] button');
+    }
 
     await new Promise((r) => setTimeout(r, 5_000));
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
@@ -40,7 +44,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
       const message = await warning?.evaluate((el) => el.textContent);
       console.log(`${numeroRicetta} message`);
       console.log(message)
-      return nextPage(page, counter + 1);
+      return nextPage(counter + 1);
     }
   }
 
@@ -97,23 +101,6 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
         isGood = difference > 0 && difference <= 60;
         break;
     }
-    // if (numeroRicetta === '010A24768440188') {
-    //   if (difference === 0) {
-    //     console.log(`${numeroRicetta} C'è poco tempo...`);
-    //   }
-    //   const isGood = difference > 0 && difference <= 60 && isNear;
-    //   const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
-    //   if (!isGood) {
-    //     console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
-    //   }
-    //   result.appuntamenti.push({
-    //     isGood,
-    //     date,
-    //     address,
-    //   });
-    //   continue;
-    // }
-    // const isGood = difference > 0 && difference <= 60;
     const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
@@ -136,7 +123,9 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
   // TODO: fill telefono + mail
-  await page.click('span[aria-describedby="Conferma"] button');
+
+
+  await nextPage();
   console.log(`${numeroRicetta} Preso!`);
   await new Promise((r) => setTimeout(r, 5_000));
   result.image = await page.screenshot({ fullPage: true });
