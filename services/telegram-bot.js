@@ -84,8 +84,10 @@ class TelegramBot {
       await new Promise((r) => setTimeout(r, randomMinutes * randomSeconds * 1_000));
       counter++;
     }
-    if (result.confirmed && result.image) {
-      await this.bot.sendPhoto(chatId, result.image);
+    if (result.confirmed) {
+      for (const image of result.images) {
+        await this.bot.sendPhoto(chatId, image);
+      }
     }
     if (!result.confirmed) {
       await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
@@ -95,7 +97,7 @@ class TelegramBot {
     const friendlyDate = format(result.confirmed.date, 'EEEE d MMMM yyyy H:mm', { locale });
     await this.bot.sendMessage(
       chatId,
-      `Ho prenotato tra ${daysToNow} 🍾\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
+      `Ho prenotato tra ${daysToNow} 🍾\n${cf} ${ricetta}\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
     );
     this._ricette.delete(ricetta);
   }

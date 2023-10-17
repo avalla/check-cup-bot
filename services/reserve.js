@@ -11,7 +11,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * @param cf
  * @param numeroRicetta
  * @param counter
- * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean}], confirmed: {date: Date, address: string, isGood: boolean}, image: Buffer, info: string}>}
+ * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean}], confirmed: {date: Date, address: string, isGood: boolean}, images: [Buffer], info: string}>}
  */
 async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   console.log(`Cerco di prenotare ${cf} ${numeroRicetta} tentativo ${counter}`);
@@ -52,13 +52,13 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     info: undefined,
     confirmed: undefined,
     appuntamenti: [],
-    image: undefined,
+    images: [],
   };
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
   await new Promise((r) => setTimeout(r, 5_000));
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
 
   await nextPage();
 
@@ -69,14 +69,14 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   const infos = await page.$$('.prestazioneRow .infoValue');
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
   await nextPage();
   await page.waitForSelector('[name="_ricettaelettronica_WAR_cupprenotazione_:appuntamentiForm"],.no-available');
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
   await page.click('span[aria-describedby="Altre disponibilità"] button');
   await page.waitForSelector('#availableAppointmentsBlock');
   await new Promise((r) => setTimeout(r, 5_000));
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
   const appuntamenti = await page.$$('#availableAppointmentsBlock .appuntamento');
   for (const appuntamento of appuntamenti) {
     const data = (await appuntamento.$eval('.captionAppointment-dateApp', (el) => el.textContent))
@@ -121,14 +121,14 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   console.log(found);
   await page.click('span[aria-describedby="Avanti"] button');
   await new Promise((r) => setTimeout(r, 5_000));
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
   // TODO: fill telefono + mail
 
 
   await nextPage();
   console.log(`${numeroRicetta} Preso!`);
   await new Promise((r) => setTimeout(r, 5_000));
-  result.image = await page.screenshot({ fullPage: true });
+  result.images.push(await page.screenshot({ fullPage: true }));
   result.confirmed = found;
   await browser.close();
   return result;
