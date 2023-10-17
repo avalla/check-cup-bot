@@ -84,12 +84,24 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     const zip = address.split(' ').findLast(item => /[0-9]{5}/.test(item));
     const date = parse(data, 'EEEE d MMMM yyyy HH:mm', new Date(), { locale });
     const difference = differenceInCalendarDays(date, new Date());
+    if (difference === 0) {
+      console.log(`${numeroRicetta} C'è poco tempo...`);
+    }
     const isNear = /101[0-9]{2}/.test(zip);
+    let isGood = false;
+    switch (true) {
+      case numeroRicetta === '010A24768440188':
+        isGood = difference > 0 && difference <= 60 && isNear;
+        break;
+      default:
+        isGood = difference > 0 && difference <= 60;
+        break;
+    }
     // if (numeroRicetta === '010A24768440188') {
     //   if (difference === 0) {
     //     console.log(`${numeroRicetta} C'è poco tempo...`);
     //   }
-    //   const isGood = difference > 3 && difference <= 30 && isNear;
+    //   const isGood = difference > 0 && difference <= 60 && isNear;
     //   const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     //   if (!isGood) {
     //     console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
@@ -101,7 +113,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     //   });
     //   continue;
     // }
-    const isGood = difference > 0 && difference <= 60 && isNear;
+    // const isGood = difference > 0 && difference <= 60;
     const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
