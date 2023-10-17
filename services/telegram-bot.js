@@ -63,7 +63,7 @@ class TelegramBot {
     let counter = 0;
 
     while (!result.confirmed) {
-      const randomMinutes = randomIntFromInterval(5, 10);
+      const randomMinutes = randomIntFromInterval(2, 5);
       const randomSeconds = randomIntFromInterval(55, 65);
       try {
         result = await reserve({ cf, ricetta, counter });
