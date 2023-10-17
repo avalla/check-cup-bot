@@ -33,10 +33,7 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
     if (avanti) {
       await page.click('span[aria-describedby="Avanti"] button');
     }
-    const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
-    if (conferma) {
-      await page.click('span[aria-describedby="Conferma"] button');
-    }
+
 
     await new Promise((r) => setTimeout(r, 5_000));
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
@@ -124,8 +121,24 @@ async function reserve({ cf, ricetta: numeroRicetta, counter = 0 }) {
   result.images.push(await page.screenshot({ fullPage: true }));
   // TODO: fill telefono + mail
 
+  // input.telefono3-bt:not(disabled)
+  // input.email-bt
+  // Note
+  // Conferma presa visione
 
-  await nextPage();
+  const [note] = await page.$$('span[aria-describedby="Note"] button');
+  if (note) {
+    await page.click('span[aria-describedby="Note"] button');
+  }
+  const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
+  if (presaVisione) {
+    await page.click('span[aria-describedby="Conferma presa visione"] button');
+  }
+  const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
+  if (conferma) {
+    await page.click('span[aria-describedby="Conferma"] button');
+  }
+
   console.log(`${numeroRicetta} Preso!`);
   await new Promise((r) => setTimeout(r, 5_000));
   result.images.push(await page.screenshot({ fullPage: true }));
