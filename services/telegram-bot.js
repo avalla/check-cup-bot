@@ -31,12 +31,12 @@ class TelegramBot {
   }
   async start() {
     await this.bot.setMyCommands([
-      { command: 'prenota', description: 'prenota <codice fiscale> <ricetta>' },
+      { command: 'prenota', description: 'prenota <codice fiscale> <ricetta> [telefono] [email]' },
       { command: 'help', description: 'Mostra un help' },
     ]);
     this.bot.onText(/\/help/, this._help.bind(this));
     this.bot.onText(
-      /\/prenota ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?(3[0-9]+)?/i,
+      /\/prenota ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?(3[0-9]+)? ((([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,})))?/i,
       this._reserve.bind(this)
     );
   }
@@ -62,7 +62,7 @@ class TelegramBot {
     let result = {};
     let counter = 0;
 
-    while (!result.confirmed) {
+    while (!result.confirmed && !result.warning) {
       const randomMinutes = randomIntFromInterval(2, 5);
       const randomSeconds = randomIntFromInterval(55, 65);
       try {
@@ -72,6 +72,9 @@ class TelegramBot {
         console.error(error);
       }
       if (result.confirmed) {
+        break;
+      }
+      if (result.error) {
         break;
       }
       await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
@@ -88,17 +91,20 @@ class TelegramBot {
       for (const image of result.images) {
         await this.bot.sendPhoto(chatId, image);
       }
+      const daysToNow = formatDistanceToNow(result.confirmed.date, { locale });
+      const friendlyDate = format(result.confirmed.date, 'EEEE d MMMM yyyy H:mm', { locale });
+      await this.bot.sendMessage(
+        chatId,
+        `Ho prenotato tra ${daysToNow} 🍾\n${cf} ${ricetta}\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
+      );
     }
     if (!result.confirmed) {
       await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
       return;
     }
-    const daysToNow = formatDistanceToNow(result.confirmed.date, { locale });
-    const friendlyDate = format(result.confirmed.date, 'EEEE d MMMM yyyy H:mm', { locale });
-    await this.bot.sendMessage(
-      chatId,
-      `Ho prenotato tra ${daysToNow} 🍾\n${cf} ${ricetta}\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
-    );
+    if (result.warning) {
+      await this.bot.sendMessage(chatId, `${result.info}\nErrore: ${result.error}`);
+    }
     this._ricette.delete(ricetta);
   }
 }

@@ -17,6 +17,13 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  */
 async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }) {
   console.log(`Cerco di prenotare ${cf} ${numeroRicetta} ${phone} ${email} tentativo ${counter}`);
+  const result = {
+    info: undefined,
+    confirmed: undefined,
+    error: undefined,
+    appuntamenti: [],
+    images: [],
+  };
   const browser = await puppeteer.launch({
     headless: 'new',
     args: [`--window-size=1920,1080`],
@@ -36,23 +43,17 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       await page.click('span[aria-describedby="Avanti"] button');
     }
 
-
     await new Promise((r) => setTimeout(r, 5_000));
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 10) {
       const message = await warning?.evaluate((el) => el.textContent);
       console.log(`${numeroRicetta} message`);
       console.log(message)
+      result.warning = message;
       return nextPage(counter + 1);
     }
   }
 
-  const result = {
-    info: undefined,
-    confirmed: undefined,
-    appuntamenti: [],
-    images: [],
-  };
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
