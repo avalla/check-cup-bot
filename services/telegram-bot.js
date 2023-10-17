@@ -31,7 +31,7 @@ class TelegramBot {
   }
   async start() {
     await this.bot.setMyCommands([
-      { command: 'prenota', description: 'prenota <codice fiscale> <ricetta> [telefono] [email]' },
+      { command: 'prenota', description: 'prenota codice_fiscale ricetta telefone email' },
       { command: 'help', description: 'Mostra un help' },
     ]);
     this.bot.onText(/\/help/, this._help.bind(this));
@@ -46,7 +46,7 @@ class TelegramBot {
     return await this.bot.sendMessage(
       chatId,
       `I comandi disponibili sono i seguenti:
-- prenota: Richiedi prenotazione <codice fiscale> <ricetta>
+- prenota: Richiedi prenotazione codice_fiscale ricetta telefone email
 - help: Questo help`
     );
   }
@@ -62,48 +62,46 @@ class TelegramBot {
     let result = {};
     let counter = 0;
 
-    while (!result.confirmed && !result.warning) {
-      const randomMinutes = randomIntFromInterval(2, 5);
-      const randomSeconds = randomIntFromInterval(55, 65);
+    while (true) {
       try {
         result = await reserve({ cf, ricetta, phone, email, counter });
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
         console.error(error);
       }
-      if (result.confirmed) {
-        break;
-      }
-      if (result.error) {
+      if (result.confirmed || result.error) {
         break;
       }
       await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
+      const minutes = randomIntFromInterval(2, 5);
+      const seconds = randomIntFromInterval(55, 65);
       await this.bot.sendMessage(
         chatId,
         `Tra circa ${Math.round(
-          (randomMinutes * randomSeconds) / 60
+          (minutes * seconds) / 60
         )} minuti proverò a cercare un appuntamento per la ricetta ${ricetta} tentativo ${counter+1}`
       );
       await new Promise((r) => setTimeout(r, randomMinutes * randomSeconds * 1_000));
       counter++;
     }
-    if (result.confirmed) {
-      for (const image of result.images) {
-        await this.bot.sendPhoto(chatId, image);
-      }
-      const daysToNow = formatDistanceToNow(result.confirmed.date, { locale });
-      const friendlyDate = format(result.confirmed.date, 'EEEE d MMMM yyyy H:mm', { locale });
-      await this.bot.sendMessage(
-        chatId,
-        `Ho prenotato tra ${daysToNow} 🍾\n${cf} ${ricetta}\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
-      );
-    }
-    if (!result.confirmed) {
-      await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
-      return;
-    }
-    if (result.warning) {
-      await this.bot.sendMessage(chatId, `${result.info}\nErrore: ${result.error}`);
+    switch (true) {
+      case !!result.confirmed:
+        for (const image of result.images) {
+          await this.bot.sendPhoto(chatId, image);
+        }
+        const daysToNow = formatDistanceToNow(result.confirmed.date, { locale });
+        const friendlyDate = format(result.confirmed.date, 'EEEE d MMMM yyyy H:mm', { locale });
+        await this.bot.sendMessage(
+          chatId,
+          `Ho prenotato tra ${daysToNow} 🍾\n${cf} ${ricetta}\n${result.info}\n${result.confirmed.address}\n${friendlyDate}`
+        );
+        break;
+      case !!result.error:
+        for (const image of result.images) {
+          await this.bot.sendPhoto(chatId, image);
+        }
+        await this.bot.sendMessage(chatId, `${cf} ${ricetta}\nErrore: ${result.error}`);
+        break;
     }
     this._ricette.delete(ricetta);
   }
