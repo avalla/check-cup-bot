@@ -61,7 +61,7 @@ class TelegramBot {
     this._ricette.add(ricetta);
     let result = {};
     let counter = 0;
-
+    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta}`);
     while (true) {
       try {
         result = await reserve({ cf, ricetta, phone, email, counter });
