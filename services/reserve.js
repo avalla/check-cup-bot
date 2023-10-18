@@ -26,7 +26,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: false,// 'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -45,17 +45,17 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       await page.click('span[aria-describedby="Avanti"] button');
     }
     // Note
-    const [note] = await page.$$('span[aria-describedby="Note"] button');
-    if (note) {
-      await page.click('span[aria-describedby="Note"] button');
-      return nextPage();
-    }
-    // Conferma presa visione
-    const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
-    if (presaVisione) {
-      await page.click('span[aria-describedby="Conferma presa visione"] button');
-      return nextPage();
-    }
+    // const [note] = await page.$$('span[aria-describedby="Note"] button');
+    // if (note) {
+    //   await page.click('span[aria-describedby="Note"] button');
+    //   // return nextPage();
+    // }
+    // // Conferma presa visione
+    // const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
+    // if (presaVisione) {
+    //   await page.click('span[aria-describedby="Conferma presa visione"] button');
+    //   // return nextPage();
+    // }
     const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
     if (conferma) {
       await page.click('span[aria-describedby="Conferma"] button');
@@ -119,15 +119,22 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       console.log(`${numeroRicetta} C'è poco tempo...`);
     }
     const isNear = /101[0-9]{2}/.test(zip);
-    let isGood = false;
-    switch (true) {
-      case numeroRicetta === '010A24768440188':
-        isGood = difference > 0 && difference <= 60 && isNear;
-        break;
-      default:
-        isGood = difference > 0 && difference <= 60;
-        break;
+    let isGood = 0;
+    if (difference > 0 && difference <= 10) {
+      isGood += 1;
     }
+    // if (difference > 0 && difference <= 30) {
+    //   isGood += 1;
+    // }
+    // if (difference > 0 && difference <= 60) {
+    //   isGood += 1;
+    // }
+    // if (difference > 0 && difference <= 90) {
+    //   isGood += 1;
+    // }
+    // if (isGood > 0 && isNear) {
+    //   isGood += 1;
+    // }
     const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
@@ -138,7 +145,11 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       address,
     });
   }
-  result.found = result.appuntamenti.find(({ isGood }) => isGood);
+  result.appuntamenti = result.appuntamenti
+    .filter(({ isGood }) => isGood > 0)
+    .sort((a, b) => b.isGood - a.isGood);
+  const [found] = result.appuntamenti;
+  result.found = found;
   if (!result.found) {
     console.log(`${numeroRicetta} Non ho trovato nulla`);
     await browser.close();
@@ -158,12 +169,12 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   result.images.push(await page.screenshot({ fullPage: true }));
   // input.telefono3-bt:not(disabled)
   const [phoneInput] = await page.$$('input.telefono1-bt:not(disabled)');
-  if (phoneInput) {
+  if (phoneInput && phone) {
     await page.$eval('input.telefono1-bt:not(disabled)', (el, value) => (el.value = value), phone);
   }
   // input.email-bt
   const [emailInput] = await page.$$('input.email-bt:not(disabled)');
-  if (emailInput) {
+  if (emailInput && email) {
     await page.$eval('input.email-bt:not(disabled)', (el, value) => (el.value = value), email);
   }
 

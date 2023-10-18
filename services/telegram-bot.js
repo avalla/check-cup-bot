@@ -72,7 +72,6 @@ class TelegramBot {
       if (result.confirmed || result.error) {
         break;
       }
-      await this.bot.sendMessage(chatId, `${result.info}\n${result.appuntamenti.map((a) => a.text).join('\n')}`);
       const minutes = randomIntFromInterval(2, 5);
       const seconds = randomIntFromInterval(55, 65);
       await this.bot.sendMessage(
@@ -81,8 +80,13 @@ class TelegramBot {
           (minutes * seconds) / 60
         )} minuti proverò a cercare un appuntamento per la ricetta ${ricetta} tentativo ${counter+1}`
       );
-      await new Promise((r) => setTimeout(r, randomMinutes * randomSeconds * 1_000));
+      await new Promise((r) => setTimeout(r, minutes * seconds * 1_000));
       counter++;
+    }
+    if (result.appuntamenti.some(({ isGood }) => isGood > 0)) {
+      await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address}) =>
+        `${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address}`
+      ).join('\n')}`);
     }
     switch (true) {
       case !!result.confirmed:
@@ -100,7 +104,7 @@ class TelegramBot {
         for (const image of result.images) {
           await this.bot.sendPhoto(chatId, image);
         }
-        await this.bot.sendMessage(chatId, `${cf} ${ricetta}\nErrore: ${result.error}`);
+        await this.bot.sendMessage(chatId, `Rimuovo ${cf} ${ricetta}\n${result.error}`);
         break;
     }
     this._ricette.delete(ricetta);
