@@ -13,7 +13,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * @param phone
  * @param email
  * @param counter
- * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean}], confirmed: {date: Date, address: string, isGood: boolean}, images: [Buffer], info: string}>}
+ * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean, isNear: boolean}], confirmed: {date: Date, address: string, isGood: boolean, isNear: boolean}, images: [Buffer], info: string}>}
  */
 async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }) {
   console.log(`Cerco di prenotare ${cf} ${numeroRicetta} ${phone} ${email} tentativo ${counter}`);
@@ -140,6 +140,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
     }
     result.appuntamenti.push({
+      isNear,
       isGood,
       date,
       address,
@@ -147,6 +148,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
   result.appuntamenti = result.appuntamenti
     .filter(({ isGood }) => isGood > 0)
+    .filter(({ isNear }) => isNear > 0)
     .sort((a, b) => b.isGood - a.isGood);
   const [found] = result.appuntamenti;
   result.found = found;
