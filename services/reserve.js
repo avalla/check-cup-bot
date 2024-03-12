@@ -16,7 +16,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGood: boolean, isNear: boolean}], confirmed: {date: Date, address: string, isGood: boolean, isNear: boolean}, images: [Buffer], info: string}>}
  */
 async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }) {
-  console.log(`Cerco di prenotare ${cf} ${numeroRicetta} ${phone} ${email} tentativo ${counter}`);
+  // console.log(`Cerco di prenotare ${cf} ${numeroRicetta} ${phone} ${email} tentativo ${counter}`);
   const result = {
     info: undefined,
     found: undefined,
@@ -45,17 +45,21 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       await page.click('span[aria-describedby="Avanti"] button');
     }
     // Note
-    // const [note] = await page.$$('span[aria-describedby="Note"] button');
-    // if (note) {
-    //   await page.click('span[aria-describedby="Note"] button');
-    //   // return nextPage();
-    // }
-    // // Conferma presa visione
-    // const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
-    // if (presaVisione) {
-    //   await page.click('span[aria-describedby="Conferma presa visione"] button');
-    //   // return nextPage();
-    // }
+    try {
+      const [note] = await page.$$('span[aria-describedby="Note"] button');
+      if (note) {
+        await page.click('span[aria-describedby="Note"] button');
+        // return nextPage();
+      }
+      // Conferma presa visione
+      const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
+      if (presaVisione) {
+        await page.click('span[aria-describedby="Conferma presa visione"] button');
+        // return nextPage();
+      }
+    } catch (error) {
+      console.error(error);
+    }
     const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
     if (conferma) {
       await page.click('span[aria-describedby="Conferma"] button');
@@ -84,7 +88,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     return result;
   }
   await page.waitForSelector(
-    'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]'
+    'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]',
   );
   // PAGE 2
   const infos = await page.$$('.prestazioneRow .infoValue');
@@ -153,7 +157,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   const [found] = result.appuntamenti;
   result.found = found;
   if (!result.found) {
-    console.log(`${numeroRicetta} Non ho trovato nulla`);
+    // console.log(`${numeroRicetta} Non ho trovato nulla`);
     await browser.close();
     return result;
   }

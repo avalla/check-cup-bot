@@ -46,7 +46,7 @@ class TelegramBot {
     return await this.bot.sendMessage(
       chatId,
       `I comandi disponibili sono i seguenti:
-- prenota: Richiedi prenotazione codice_fiscale ricetta telefone email
+- prenota: Richiedi prenotazione codice_fiscale ricetta telefono email
 - help: Questo help`
     );
   }
@@ -60,7 +60,7 @@ class TelegramBot {
     }
     this._ricette.add(ricetta);
     let result = {};
-    let counter = 0;
+    let counter = 1;
     await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta}`);
     while (true) {
       try {
@@ -74,12 +74,12 @@ class TelegramBot {
       }
       const minutes = randomIntFromInterval(2, 5);
       const seconds = randomIntFromInterval(55, 65);
-      await this.bot.sendMessage(
-        chatId,
-        `Tra circa ${Math.round(
-          (minutes * seconds) / 60
-        )} minuti proverò a cercare un appuntamento per la ricetta ${ricetta} tentativo ${counter+1}`
-      );
+      if (counter % 10 === 0) {
+        await this.bot.sendMessage(
+          chatId,
+          `Ho fatto ${counter} tentativi per prenotare la ${ricetta}`
+        );
+      }
       await new Promise((r) => setTimeout(r, minutes * seconds * 1_000));
       counter++;
     }
