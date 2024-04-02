@@ -26,7 +26,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: 'false',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -54,6 +54,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       // Conferma presa visione
       const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
       if (presaVisione) {
+        console.log('Presa visione')
         await page.click('span[aria-describedby="Conferma presa visione"] button');
         // return nextPage();
       }
@@ -62,6 +63,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     }
     const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
     if (conferma) {
+      console.log('Conferma')
       await page.click('span[aria-describedby="Conferma"] button');
     }
 
