@@ -65,6 +65,11 @@ class TelegramBot {
     while (true) {
       try {
         result = await reserve({ cf, ricetta, phone, email, counter });
+        if (result.appuntamenti.length > 0) {
+          await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isNear}) =>
+              `${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} Posizione: ${isNear} Data: ${isGood}`
+          ).join('\n')}`);
+        }
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
         console.error(error);

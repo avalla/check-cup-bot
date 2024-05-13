@@ -3,6 +3,7 @@ import locale from 'date-fns/locale/it/index.js';
 import parse from 'date-fns/parse/index.js';
 import format from 'date-fns/format/index.js';
 import differenceInCalendarDays from 'date-fns/differenceInCalendarDays/index.js';
+import {isBefore, isSameDay} from "date-fns";
 
 const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
 
@@ -26,7 +27,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: 'false',
+    headless: 'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -35,28 +36,34 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   page.setDefaultTimeout(2 * 60_000);
 
   // PROSEGUI/AVANTI/NOTE+PRESAVISIONE/CONFERMA
-  async function nextPage(counter = 0) {
+  async function nextPage(found = undefined, counter = 0) {
     const [prosegui] = await page.$$('span[aria-describedby="Prosegui"] button');
     if (prosegui) {
       await page.click('span[aria-describedby="Prosegui"] button');
     }
     const [avanti] = await page.$$('span[aria-describedby="Avanti"] button');
-    if (avanti) {
+    if (avanti || found?.index === 0) {
       await page.click('span[aria-describedby="Avanti"] button');
+    }
+    if (found) {
+      await page.click(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
     }
     // Note
     try {
       const [note] = await page.$$('span[aria-describedby="Note"] button');
       if (note) {
+        console.log(`${numeroRicetta} Note`)
         await page.click('span[aria-describedby="Note"] button');
+        await new Promise((r) => setTimeout(r, 5_000));
         // return nextPage();
       }
       // Conferma presa visione
       const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
       if (presaVisione) {
-        console.log('Presa visione')
+        console.log(`${numeroRicetta} Presa visione`)
         await page.click('span[aria-describedby="Conferma presa visione"] button');
         // return nextPage();
+        await new Promise(r => setTimeout(r, 5_000));
       }
     } catch (error) {
       console.error(error);
@@ -67,11 +74,11 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       await page.click('span[aria-describedby="Conferma"] button');
     }
 
-    await new Promise((r) => setTimeout(r, 5_000));
+    await new Promise((r) => setTimeout(r, 10_000));
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 5) {
       const message = await warning?.evaluate((el) => el.textContent);
-      console.log(message);
+      console.log(`${numeroRicetta} errore ${message}`)
       result.error = message;
       return nextPage(counter + 1);
     }
@@ -93,6 +100,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]',
   );
   // PAGE 2
+  console.log(`${numeroRicetta} page 2`)
   const infos = await page.$$('.prestazioneRow .infoValue');
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
@@ -105,13 +113,14 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
   await page.waitForSelector('[name="_ricettaelettronica_WAR_cupprenotazione_:appuntamentiForm"],.no-available');
   // PAGE 3
+  console.log(`${numeroRicetta} page 3`)
   result.images.push(await page.screenshot({ fullPage: true }));
   await page.click('span[aria-describedby="Altre disponibilità"] button');
   await page.waitForSelector('#availableAppointmentsBlock');
   await new Promise((r) => setTimeout(r, 5_000));
   result.images.push(await page.screenshot({ fullPage: true }));
   const appuntamenti = await page.$$('#availableAppointmentsBlock .appuntamento');
-  for (const appuntamento of appuntamenti) {
+  for (const [i, appuntamento] of appuntamenti.entries()) {
     const data = (await appuntamento.$eval('.captionAppointment-dateApp', (el) => el.textContent))
       .replace(/\n\t*/, '')
       .replace('alle ore', ' ');
@@ -124,9 +133,11 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     if (difference === 0) {
       console.log(`${numeroRicetta} C'è poco tempo...`);
     }
-    const isNear = /101[0-9]{2}/.test(zip);
+    const isNear = /101[23][0-9]/.test(zip); // Cerca in zone comode...
+    // const isNear = /101[0-9]{2}/.test(zip); //  // Cerca in zone comode...Cerca in zone comode...
+
     let isGood = 0;
-    if (difference > 0 && difference <= 10) {
+    if (difference > 0 && difference <= 30) {
       isGood += 1;
     }
     // if (difference > 0 && difference <= 30) {
@@ -145,27 +156,34 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     if (!isGood) {
       console.log(`${numeroRicetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
     }
+    // if (isSameDay(date, new Date('2024-04-24')) && isBefore(date, new Date('2024-04-24 10:30'))) {
+    //   console.log(`${numeroRicetta} il ${friendlyDate} è prima dell'orario`);
+    //   isGood -= 1;
+    // }
     result.appuntamenti.push({
+      index: i,
       isNear,
       isGood,
       date,
       address,
     });
   }
-  result.appuntamenti = result.appuntamenti
+  console.log(`Posti disponibili:`, result);
+  const [found] = result.appuntamenti
     .filter(({ isGood }) => isGood > 0)
     .filter(({ isNear }) => isNear > 0)
     .sort((a, b) => b.isGood - a.isGood);
-  const [found] = result.appuntamenti;
   result.found = found;
   if (!result.found) {
-    // console.log(`${numeroRicetta} Non ho trovato nulla`);
+    console.log(`${numeroRicetta} Non ho trovato nulla`);
     await browser.close();
     return result;
   }
   console.log(`${numeroRicetta} Ho trovato qualcosa...`);
   console.log(result.found);
-  await nextPage();
+  // TODO: click on result.found
+
+  await nextPage(result.found);
   await new Promise((r) => setTimeout(r, 5_000));
   if (result.error) {
     result.images.push(await page.screenshot({ fullPage: true }));
@@ -174,6 +192,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
 
   // PAGE 4 (conferma prenotazione)
+  console.log(`${numeroRicetta} page 4`)
   result.images.push(await page.screenshot({ fullPage: true }));
   // input.telefono3-bt:not(disabled)
   const [phoneInput] = await page.$$('input.telefono1-bt:not(disabled)');
@@ -195,6 +214,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
 
   // PAGE 5 (prenotazione confermata)
+  console.log(`${numeroRicetta} page 5`)
   console.log(`${numeroRicetta} Preso!`);
   result.images.push(await page.screenshot({ fullPage: true }));
   result.confirmed = result.found;
