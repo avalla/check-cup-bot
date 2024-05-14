@@ -67,7 +67,7 @@ class TelegramBot {
         result = await reserve({ cf, ricetta, phone, email, counter });
         if (result.appuntamenti.length > 0) {
           await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isNear}) =>
-              `${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} Posizione: ${isNear} Data: ${isGood}`
+              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isNear ? 'OK': 'KO'} Data: ${isGood > 0 ? 'OK': 'KO'}`
           ).join('\n')}`);
         }
       } catch (error) {
@@ -79,12 +79,13 @@ class TelegramBot {
       }
       const minutes = randomIntFromInterval(2, 5);
       const seconds = randomIntFromInterval(55, 65);
-      if (counter % 10 === 0) {
+      if (counter % 50 === 0) {
         await this.bot.sendMessage(
           chatId,
           `Ho fatto ${counter} tentativi per prenotare la ${ricetta}`
         );
       }
+      console.log(`${ricetta} aspetto ${minutes * seconds} secondi`)
       await new Promise((r) => setTimeout(r, minutes * seconds * 1_000));
       counter++;
     }

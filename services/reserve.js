@@ -49,6 +49,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     const [selectorFound] = await page.$$(selector);
     if (selectorFound) {
       await page.click(selector);
+      await new Promise((r) => setTimeout(r, 5_000));
     }
 
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
@@ -68,18 +69,14 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
-  // await new Promise((r) => setTimeout(r, 5_000));
-
-  // await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
-  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
-  await checkAndClickSelector('span[aria-describedby="Prosegui"] button');
+  await new Promise((r) => setTimeout(r, 5_000));
+  await checkAndClickSelector('span[aria-describedby="Avanti"],span[aria-describedby="Prosegui"] button');
   if (result.error) {
     return result;
   }
 
   // PAGE 2 (confirm)
   console.log(`${numeroRicetta} page 2`)
-  await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
   const infos = await page.$$('.prestazioneRow .infoValue');
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
@@ -107,7 +104,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     if (difference === 0) {
       console.log(`${numeroRicetta} C'è poco tempo...`);
     }
-    const isNear = /101[23][0-9]/.test(zip); // Cerca in zone comode...
+    const isNear = /101[235][0-9]/.test(zip); // Cerca in zone comode...
     // const isNear = /101[0-9]{2}/.test(zip); //  // Cerca in zone comode...Cerca in zone comode...
 
     let isGood = 0;
@@ -148,7 +145,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     .filter(({ isNear }) => isNear > 0)
     .sort((a, b) => b.isGood - a.isGood);
   result.found = found;
-  if (!result.found) {
+  if (!result.found || result.appuntamenti.length < 2) {
     console.log(`${numeroRicetta} Non ho trovato nulla`);
     await browser.close();
     return result;
@@ -158,10 +155,10 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   if (result.found.index > 0) {
     console.log(`Provo a selezionare l'elemento ${found.index}`)
     await checkAndClickSelector(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
-  } else {
-    await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+    // await new Promise((r) => setTimeout(r, 5_000));
   }
-  await new Promise((r) => setTimeout(r, 5_000));
+  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+  // await new Promise((r) => setTimeout(r, 5_000));
   if (result.error) {
     return result;
   }
