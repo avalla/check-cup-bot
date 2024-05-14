@@ -42,11 +42,12 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       await page.click('span[aria-describedby="Prosegui"] button');
     }
     const [avanti] = await page.$$('span[aria-describedby="Avanti"] button');
-    if (avanti || found?.index === 0) {
-      await page.click('span[aria-describedby="Avanti"] button');
-    }
-    if (found) {
+    if (found?.index > 0) {
+      console.log(`Provo a selezionare l'elemento ${found.index}`)
       await page.click(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
+    }
+    else if (avanti || found?.index === 0) {
+      await page.click('span[aria-describedby="Avanti"] button');
     }
     // Note
     try {
@@ -181,8 +182,6 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
   console.log(`${numeroRicetta} Ho trovato qualcosa...`);
   console.log(result.found);
-  // TODO: click on result.found
-
   await nextPage(result.found);
   await new Promise((r) => setTimeout(r, 5_000));
   if (result.error) {
