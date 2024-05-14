@@ -71,6 +71,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   // await new Promise((r) => setTimeout(r, 5_000));
 
   // await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
+  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
   await checkAndClickSelector('span[aria-describedby="Prosegui"] button');
   if (result.error) {
     return result;
