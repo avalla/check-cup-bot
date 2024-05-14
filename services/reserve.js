@@ -3,7 +3,6 @@ import locale from 'date-fns/locale/it/index.js';
 import parse from 'date-fns/parse/index.js';
 import format from 'date-fns/format/index.js';
 import differenceInCalendarDays from 'date-fns/differenceInCalendarDays/index.js';
-import {isBefore, isSameDay} from "date-fns";
 
 const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
 
@@ -27,7 +26,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: false,// 'new',
+    headless: 'new', // false,
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
