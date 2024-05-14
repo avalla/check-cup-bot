@@ -45,17 +45,14 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     // } catch(error) {
     //   return false;
     // }
-    const [selectorFound] = await page.$$('span[aria-describedby="Prosegui"] button');
+    await new Promise((r) => setTimeout(r, 10_000));
+    const [selectorFound] = await page.$$(selector);
     if (selectorFound) {
-      await page.click('span[aria-describedby="Prosegui"] button');
-      await new Promise((r) => setTimeout(r, 10_000));
-      return true;
+      await page.click(selector);
     }
 
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 5) {
-      // retry
-      await new Promise((r) => setTimeout(r, 10_000));
       return checkAndClickSelector(selector, counter + 1)
     } else if (warning && counter >= 5) {
       const message = await warning?.evaluate((el) => el.textContent);
@@ -64,7 +61,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
       result.images.push(await page.screenshot({ fullPage: true }));
       await browser.close();
     }
-    return false;
+    return true;
   }
 
   // PAGE 1 (insert cf+prenotazione)
@@ -73,8 +70,8 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
   // await new Promise((r) => setTimeout(r, 5_000));
 
-  await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
-  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+  // await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
+  await checkAndClickSelector('span[aria-describedby="Prosegui"] button');
   if (result.error) {
     return result;
   }
@@ -94,7 +91,6 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   result.images.push(await page.screenshot({ fullPage: true }));
   await page.click('span[aria-describedby="Altre disponibilità"] button');
   await page.waitForSelector('#availableAppointmentsBlock');
-  await new Promise((r) => setTimeout(r, 5_000));
   result.images.push(await page.screenshot({ fullPage: true }));
   const appuntamenti = await page.$$('#availableAppointmentsBlock .appuntamento');
   for (const [i, appuntamento] of appuntamenti.entries()) {
