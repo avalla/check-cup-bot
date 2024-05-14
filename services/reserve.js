@@ -27,7 +27,7 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: 'new',
+    headless: false,// 'new',
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -36,84 +36,60 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   page.setDefaultTimeout(2 * 60_000);
 
   // PROSEGUI/AVANTI/NOTE+PRESAVISIONE/CONFERMA
-  async function nextPage(found = undefined, counter = 0) {
-    const [prosegui] = await page.$$('span[aria-describedby="Prosegui"] button');
-    if (prosegui) {
+  async function checkAndClickSelector(selector, counter = 0) {
+    if (result.error) {
+      return false;
+    }
+    // try {
+    //   await page.waitForSelector(selector, { timeout: 10_000 });
+    // } catch(error) {
+    //   return false;
+    // }
+    const [selectorFound] = await page.$$('span[aria-describedby="Prosegui"] button');
+    if (selectorFound) {
       await page.click('span[aria-describedby="Prosegui"] button');
-    }
-    const [avanti] = await page.$$('span[aria-describedby="Avanti"] button');
-    if (found?.index > 0) {
-      console.log(`Provo a selezionare l'elemento ${found.index}`)
-      await page.click(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
-    }
-    else if (avanti || found?.index === 0) {
-      await page.click('span[aria-describedby="Avanti"] button');
-    }
-    // Note
-    try {
-      const [note] = await page.$$('span[aria-describedby="Note"] button');
-      if (note) {
-        console.log(`${numeroRicetta} Note`)
-        await page.click('span[aria-describedby="Note"] button');
-        await new Promise((r) => setTimeout(r, 5_000));
-        // return nextPage();
-      }
-      // Conferma presa visione
-      const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
-      if (presaVisione) {
-        console.log(`${numeroRicetta} Presa visione`)
-        await page.click('span[aria-describedby="Conferma presa visione"] button');
-        // return nextPage();
-        await new Promise(r => setTimeout(r, 5_000));
-      }
-    } catch (error) {
-      console.error(error);
-    }
-    const [conferma] = await page.$$('span[aria-describedby="Conferma"] button');
-    if (conferma) {
-      console.log('Conferma')
-      await page.click('span[aria-describedby="Conferma"] button');
+      await new Promise((r) => setTimeout(r, 10_000));
+      return true;
     }
 
-    await new Promise((r) => setTimeout(r, 10_000));
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 5) {
+      // retry
+      await new Promise((r) => setTimeout(r, 10_000));
+      return checkAndClickSelector(selector, counter + 1)
+    } else if (warning && counter >= 5) {
       const message = await warning?.evaluate((el) => el.textContent);
       console.log(`${numeroRicetta} errore ${message}`)
       result.error = message;
-      return nextPage(counter + 1);
+      result.images.push(await page.screenshot({ fullPage: true }));
+      await browser.close();
     }
+    return false;
   }
 
+  // PAGE 1 (insert cf+prenotazione)
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), numeroRicetta);
-  await new Promise((r) => setTimeout(r, 5_000));
-  //result.images.push(await page.screenshot({ fullPage: true }));
+  // await new Promise((r) => setTimeout(r, 5_000));
 
-  await nextPage();
+  await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
+  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
   if (result.error) {
-    result.images.push(await page.screenshot({ fullPage: true }));
-    await browser.close();
     return result;
   }
-  await page.waitForSelector(
-    'button[name="_ricettaelettronica_WAR_cupprenotazione_\\:navigation-epPrestazioni-main:epPrestazioni-nextButton-main_button"]',
-  );
-  // PAGE 2
+
+  // PAGE 2 (confirm)
   console.log(`${numeroRicetta} page 2`)
+  await page.waitForSelector('span[aria-describedby="Avanti"] button', { timeout: 10_000 });
   const infos = await page.$$('.prestazioneRow .infoValue');
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
   result.images.push(await page.screenshot({ fullPage: true }));
-  await nextPage();
-  if (result.error) {
-    result.images.push(await page.screenshot({ fullPage: true }));
-    await browser.close();
-    return result;
-  }
+  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+
+  // PAGE 3 (appointments)
   await page.waitForSelector('[name="_ricettaelettronica_WAR_cupprenotazione_:appuntamentiForm"],.no-available');
-  // PAGE 3
   console.log(`${numeroRicetta} page 3`)
   result.images.push(await page.screenshot({ fullPage: true }));
   await page.click('span[aria-describedby="Altre disponibilità"] button');
@@ -182,11 +158,14 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   }
   console.log(`${numeroRicetta} Ho trovato qualcosa...`);
   console.log(result.found);
-  await nextPage(result.found);
+  if (result.found.index > 0) {
+    console.log(`Provo a selezionare l'elemento ${found.index}`)
+    await checkAndClickSelector(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
+  } else {
+    await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+  }
   await new Promise((r) => setTimeout(r, 5_000));
   if (result.error) {
-    result.images.push(await page.screenshot({ fullPage: true }));
-    await browser.close();
     return result;
   }
 
@@ -203,14 +182,35 @@ async function reserve({ cf, ricetta: numeroRicetta, phone, email, counter = 0 }
   if (emailInput && email) {
     await page.$eval('input.email-bt:not(disabled)', (el, value) => (el.value = value), email);
   }
-
-  await nextPage();
-  await new Promise((r) => setTimeout(r, 10_000));
-  if (result.error) {
+  // Note
+  await (async function seeNotes(counter = 0) {
+    const [note] = await page.$$('span[aria-describedby="Note"] button');
+    if (note) {
+      console.log(`${numeroRicetta} Note`);
+      await page.click('span[aria-describedby="Note"] button');
+      await new Promise((r) => setTimeout(r, 5_000));
+    }
     result.images.push(await page.screenshot({ fullPage: true }));
-    await browser.close();
-    return result;
-  }
+    const [presaVisione] = await page.$$('span[aria-describedby="Conferma presa visione"] button');
+    if (presaVisione) {
+      console.log(`${numeroRicetta} Presa visione`);
+      await page.click('span[aria-describedby="Conferma presa visione"] button');
+      await new Promise(r => setTimeout(r, 5_000));
+      return;
+    }
+    return await seeNotes(counter + 1);
+  })();
+
+  await checkAndClickSelector('span[aria-describedby="Conferma"] button');
+
+
+  // await nextPage();
+  // await new Promise((r) => setTimeout(r, 10_000));
+  // if (result.error) {
+  //   result.images.push(await page.screenshot({ fullPage: true }));
+  //   await browser.close();
+  //   return result;
+  // }
 
   // PAGE 5 (prenotazione confermata)
   console.log(`${numeroRicetta} page 5`)
