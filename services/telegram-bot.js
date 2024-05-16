@@ -61,15 +61,18 @@ class TelegramBot {
     this._ricette.add(ricetta);
     let result = {};
     let counter = 1;
+    let previousMessage;
     await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
     while (true) {
       try {
         result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
         if (result.appuntamenti.length > 0) {
-          const message = await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
+          if (previousMessage) {
+            await this.bot.deleteMessage(chatId, previousMessage.message_id);
+          }
+          previousMessage = await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
               `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
           ).join('\n')}`);
-          setTimeout(() => this.bot.deleteMessage(chatId, message.message_id), 5 * 60 * 1000);
         }
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
