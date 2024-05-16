@@ -66,9 +66,10 @@ class TelegramBot {
       try {
         result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
         if (result.appuntamenti.length > 0) {
-          await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
+          const message = await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
               `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
           ).join('\n')}`);
+          setTimeout(() => this.bot.deleteMessage(chatId, message.message_id), 5 * 60 * 1000);
         }
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
