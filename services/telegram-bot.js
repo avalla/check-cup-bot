@@ -36,7 +36,7 @@ class TelegramBot {
     ]);
     this.bot.onText(/\/help/, this._help.bind(this));
     this.bot.onText(
-      /\/prenota ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?(3[0-9]+)? ((([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,})))?/i,
+      /\/prenota ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?([0-9]*)? ?([a-z0-9\[\]\-\*\.]{1,5})? ?([a-z0-9\[\]\-\*\.]*)?/i,
       this._reserve.bind(this)
     );
   }
@@ -46,14 +46,14 @@ class TelegramBot {
     return await this.bot.sendMessage(
       chatId,
       `I comandi disponibili sono i seguenti:
-- /prenota: Richiedi prenotazione codice_fiscale ricetta telefono email [cap regexp] [indirizzo regexp]
+- /prenota: Richiedi prenotazione codice_fiscale ricetta [maxDays] [cap regexp] [indirizzo regexp]
 - /help: Questo help`
     );
   }
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
     printMsgInfo(msg);
-    const [_, cf, ricetta, phone, email, zipFilter, addressFilter] = match;
+    const [_, cf, ricetta, maxDays, zipFilter, addressFilter] = match;
     if (this._ricette.has(ricetta)) {
       await this.bot.sendMessage(chatId, `Sto già cercando di prenotare questa ricetta!`);
       return;
@@ -64,7 +64,7 @@ class TelegramBot {
     await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta}`);
     while (true) {
       try {
-        result = await reserve({ cf, ricetta, phone, email, zipFilter, addressFilter });
+        result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
         if (result.appuntamenti.length > 0) {
           await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
               `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`

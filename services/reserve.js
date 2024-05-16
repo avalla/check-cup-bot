@@ -9,13 +9,12 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * Reserve
  * @param cf
  * @param ricetta
- * @param phone
- * @param email
+ * @param maxDays
  * @param zipFilter
  * @param addressFilter
  * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}], confirmed: {date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}, images: [Buffer], info: string}>}
  */
-async function reserve({ cf, ricetta, phone, email, zipFilter = '101[0-9][0-9]', addressFilter = '.*' }) {
+async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]', addressFilter = '.*' }) {
   // console.log(`Cerco di prenotare ${cf} ${ricetta} ${phone} ${email} tentativo ${counter}`);
   const result = {
     info: undefined,
@@ -107,10 +106,10 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = '101[0-9][0-9]',
     const goodAddress = new RegExp(addressFilter, 'i').test(address); // Cerca indirizzo...
     // const isGoodPlace = /101[0-9]{2}/.test(zip); //  // Cerca in zone comode...Cerca in zone comode...
 
-    const isGoodDate = difference > 0 && difference <= 30;
+    const isGoodDate = difference > 0 && difference <= maxDays;
     const isGoodPlace = goodAddress && goodZip;
-    console.log(ricetta, 'zipFilter', zipFilter)
-    console.log(ricetta, 'addressFilter', addressFilter)
+    // console.log(ricetta, 'zipFilter', zipFilter)
+    // console.log(ricetta, `.*${addressFilter}.*`, addressFilter)
     // if (difference > 0 && difference <= 30) {
     //   isGood += 1;
     // }
@@ -164,14 +163,6 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = '101[0-9][0-9]',
   // PAGE 4 (conferma prenotazione)
   console.log(`${ricetta} page 4`)
   result.images.push(await page.screenshot({ fullPage: true }));
-  const [phoneInput] = await page.$$('input.telefono1-bt:not(disabled)');
-  if (phoneInput && phone) {
-    await page.$eval('input.telefono1-bt:not(disabled)', (el, value) => (el.value = value), phone);
-  }
-  const [emailInput] = await page.$$('input.email-bt:not(disabled)');
-  if (emailInput && email) {
-    await page.$eval('input.email-bt:not(disabled)', (el, value) => (el.value = value), email);
-  }
   // Note
   await (async function seeNotes(counter = 0) {
     const [note] = await page.$$('span[aria-describedby="Note"] button');
