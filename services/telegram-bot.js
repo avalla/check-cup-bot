@@ -72,7 +72,7 @@ class TelegramBot {
           }
           previousMessage = await this.bot.sendMessage(chatId, `**${cf} ${ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
               `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
-          ).join('\n')}`);
+          ).join('\n')}`,  { parseMode: 'Markdown' });
         }
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c\'è stato un errore :( ${error}`);
