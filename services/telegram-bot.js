@@ -46,14 +46,14 @@ class TelegramBot {
     return await this.bot.sendMessage(
       chatId,
       `I comandi disponibili sono i seguenti:
-- prenota: Richiedi prenotazione codice_fiscale ricetta telefono email
-- help: Questo help`
+- /prenota: Richiedi prenotazione codice_fiscale ricetta telefono email [cap regexp] [indirizzo regexp]
+- /help: Questo help`
     );
   }
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
     printMsgInfo(msg);
-    const [_, cf, ricetta, phone, email] = match;
+    const [_, cf, ricetta, phone, email, zipFilter, addressFilter] = match;
     if (this._ricette.has(ricetta)) {
       await this.bot.sendMessage(chatId, `Sto già cercando di prenotare questa ricetta!`);
       return;
@@ -64,10 +64,10 @@ class TelegramBot {
     await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta}`);
     while (true) {
       try {
-        result = await reserve({ cf, ricetta, phone, email, counter });
+        result = await reserve({ cf, ricetta, phone, email, zipFilter, addressFilter });
         if (result.appuntamenti.length > 0) {
-          await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isNear}) =>
-              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isNear ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
+          await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
+              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
           ).join('\n')}`);
         }
       } catch (error) {
@@ -91,7 +91,7 @@ class TelegramBot {
     }
     if (result.appuntamenti.some(({ isGood }) => isGood > 0)) {
       await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address}) =>
-        `${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address}`
+        `${format(date, 'EEE d/MM/yyyy H:mm', { locale })} ${address}`
       ).join('\n')}`);
     }
     switch (true) {
