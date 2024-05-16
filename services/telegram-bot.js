@@ -67,7 +67,7 @@ class TelegramBot {
         result = await reserve({ cf, ricetta, phone, email, counter });
         if (result.appuntamenti.length > 0) {
           await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isNear}) =>
-              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isNear ? 'OK': 'KO'} Data: ${isGood > 0 ? 'OK': 'KO'}`
+              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isNear ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
           ).join('\n')}`);
         }
       } catch (error) {
