@@ -62,7 +62,7 @@ class TelegramBot {
     let result = {};
     let counter = 1;
     let previousMessage;
-    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
+    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter ? 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
     while (true) {
       try {
         result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
@@ -70,8 +70,8 @@ class TelegramBot {
           if (previousMessage) {
             await this.bot.deleteMessage(chatId, previousMessage.message_id);
           }
-          previousMessage = await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
-              `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
+          previousMessage = await this.bot.sendMessage(chatId, `**${cf} ${ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
+              `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
           ).join('\n')}`);
         }
       } catch (error) {
