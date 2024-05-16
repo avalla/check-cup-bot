@@ -15,7 +15,7 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * @param addressFilter
  * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}], confirmed: {date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}, images: [Buffer], info: string}>}
  */
-async function reserve({ cf, ricetta, phone, email, zipFilter = /101[0-9][0-9]/, addressFilter = /.*/i }) {
+async function reserve({ cf, ricetta, phone, email, zipFilter = '101[0-9][0-9]', addressFilter = '.*' }) {
   // console.log(`Cerco di prenotare ${cf} ${ricetta} ${phone} ${email} tentativo ${counter}`);
   const result = {
     info: undefined,
@@ -103,8 +103,8 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = /101[0-9][0-9]/,
     if (difference === 0) {
       console.log(`${ricetta} C'è poco tempo...`);
     }
-    const goodZip = zipFilter.test(zip); // Cerca in zone comode...
-    const goodAddress = addressFilter.test(address);
+    const goodZip = new RegExp(zipFilter).test(zip); // Cerca in zone comode...
+    const goodAddress = new RegExp(addressFilter, 'i').test(address); // Cerca indirizzo...
     // const isGoodPlace = /101[0-9]{2}/.test(zip); //  // Cerca in zone comode...Cerca in zone comode...
 
     const isGoodDate = difference > 0 && difference <= 30;
@@ -153,10 +153,8 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = /101[0-9][0-9]/,
   if (result.found.index > 0) {
     console.log(`Provo a selezionare l'elemento ${found.index}`)
     await checkAndClickSelector(`.disponibiliPanel:nth-child(${found.index+1}) span[aria-describedby="Seleziona"] button`);
-    // await new Promise((r) => setTimeout(r, 5_000));
   }
   await checkAndClickSelector('span[aria-describedby="Avanti"] button');
-  // await new Promise((r) => setTimeout(r, 5_000));
   if (result.error) {
     return result;
   }
@@ -164,12 +162,10 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = /101[0-9][0-9]/,
   // PAGE 4 (conferma prenotazione)
   console.log(`${ricetta} page 4`)
   result.images.push(await page.screenshot({ fullPage: true }));
-  // input.telefono3-bt:not(disabled)
   const [phoneInput] = await page.$$('input.telefono1-bt:not(disabled)');
   if (phoneInput && phone) {
     await page.$eval('input.telefono1-bt:not(disabled)', (el, value) => (el.value = value), phone);
   }
-  // input.email-bt
   const [emailInput] = await page.$$('input.email-bt:not(disabled)');
   if (emailInput && email) {
     await page.$eval('input.email-bt:not(disabled)', (el, value) => (el.value = value), email);
