@@ -109,6 +109,8 @@ async function reserve({ cf, ricetta, phone, email, zipFilter = '101[0-9][0-9]',
 
     const isGoodDate = difference > 0 && difference <= 30;
     const isGoodPlace = goodAddress && goodZip;
+    console.log(ricetta, 'zipFilter', zipFilter)
+    console.log(ricetta, 'addressFilter', addressFilter)
     // if (difference > 0 && difference <= 30) {
     //   isGood += 1;
     // }

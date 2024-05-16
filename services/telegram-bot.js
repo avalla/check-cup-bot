@@ -90,7 +90,7 @@ class TelegramBot {
       counter++;
     }
     if (result.appuntamenti.some(({ isGood }) => isGood > 0)) {
-      await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address}) =>
+      await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address}) =>
         `${format(date, 'EEE d/MM/yyyy H:mm', { locale })} ${address}`
       ).join('\n')}`);
     }
