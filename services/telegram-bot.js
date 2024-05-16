@@ -66,7 +66,7 @@ class TelegramBot {
       try {
         result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
         if (result.appuntamenti.length > 0) {
-          await this.bot.sendMessage(chatId, `Prenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
+          await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address, isGood, isGoodPlace}) =>
               `- ${format(date, 'EEEE d MMMM yyyy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGood > 0 ? '✅': '❌'}`
           ).join('\n')}`);
         }
@@ -88,11 +88,6 @@ class TelegramBot {
       console.log(`${ricetta} aspetto ${minutes * seconds} secondi`)
       await new Promise((r) => setTimeout(r, minutes * seconds * 1_000));
       counter++;
-    }
-    if (result.appuntamenti.some(({ isGood }) => isGood > 0)) {
-      await this.bot.sendMessage(chatId, `${cf} > ${ricetta}\n${result.info}\nPrenotazioni disponibili:\n${result.appuntamenti.map(({ date, address}) =>
-        `${format(date, 'EEE d/MM/yyyy H:mm', { locale })} ${address}`
-      ).join('\n')}`);
     }
     switch (true) {
       case !!result.confirmed:
