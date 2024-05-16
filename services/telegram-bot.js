@@ -61,7 +61,7 @@ class TelegramBot {
     this._ricette.add(ricetta);
     let result = {};
     let counter = 1;
-    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta}`);
+    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
     while (true) {
       try {
         result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
