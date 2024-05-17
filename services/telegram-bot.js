@@ -31,7 +31,7 @@ class TelegramBot {
   }
   async start() {
     await this.bot.setMyCommands([
-      { command: 'prenota', description: 'prenota codice_fiscale ricetta telefone email' },
+      { command: 'prenota', description: 'prenota codice_fiscale ricetta giorni filtrocap filtroindirizzo' },
       { command: 'help', description: 'Mostra un help' },
     ]);
     this.bot.onText(/\/help/, this._help.bind(this));

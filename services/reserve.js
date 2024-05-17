@@ -140,11 +140,10 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   }
   console.log(`Posti disponibili:`, result);
   const [found] = result.appuntamenti
-    .filter(({ isGoodDate }) => isGoodDate)
-    .filter(({ isGoodPlace }) => isGoodPlace)
+    .filter(({ isGoodDate, isGoodPlace }) => isGoodDate && isGoodPlace)
     .sort((a, b) => b.date - a.date);
   result.found = found;
-  if (!result.found || result.appuntamenti.length < 2) {
+  if (!result.found) {
     console.log(`${ricetta} Non ho trovato nulla`);
     await browser.close();
     return result;
