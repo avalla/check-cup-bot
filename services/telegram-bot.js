@@ -54,14 +54,13 @@ class TelegramBot {
   }
   async _status(msg) {
     const chatId = msg.chat.id;
-    let previousMessage;
     const results = Array.from(this._ricette.values());
     const text = results
-      .filter(result => result.chatId === chatId)
+      .filter(result => result?.chatId === chatId)
       .map(result => `**${result.cf} ${result.ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
       `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
     ).join('\n')}`).join('-------');
-    previousMessage = await this.bot.sendMessage(chatId, text,  { parseMode: 'Markdown' });
+    await this.bot.sendMessage(chatId, text,  { parseMode: 'Markdown' });
   }
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
