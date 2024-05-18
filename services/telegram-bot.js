@@ -60,7 +60,7 @@ class TelegramBot {
       .map(result => `**${result.cf} ${result.ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
       `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
     ).join('\n')}`).join('-------');
-    await this.bot.sendMessage(chatId, text,  { parseMode: 'Markdown' });
+    await this.bot.sendMessage(chatId, text || 'Ancora nessuna informazione...',  { parseMode: 'Markdown' });
   }
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
