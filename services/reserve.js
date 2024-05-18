@@ -25,7 +25,7 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
     images: [],
   };
   const browser = await puppeteer.launch({
-    headless: 'new', // false,
+    headless: false,
     args: [`--window-size=1920,1080`],
     defaultViewport: { width: 1920, height: 1080 },
   });
@@ -33,7 +33,6 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   page.setDefaultNavigationTimeout(2 * 60_000);
   page.setDefaultTimeout(2 * 60_000);
 
-  // PROSEGUI/AVANTI/NOTE+PRESAVISIONE/CONFERMA
   async function checkAndClickSelector(selector, counter = 0) {
     if (result.error) {
       return false;
@@ -49,7 +48,6 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
       await page.click(selector);
       await new Promise((r) => setTimeout(r, 5_000));
     }
-
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 5) {
       return checkAndClickSelector(selector, counter + 1)
@@ -67,7 +65,7 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   await page.goto(CUP_URL, { waitUntil: 'networkidle2' });
   await page.$eval('input.codice-fiscale-bt', (el, value) => (el.value = value), cf);
   await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), ricetta);
-  await new Promise((r) => setTimeout(r, 5_000));
+  await new Promise((r) => setTimeout(r, 2_000));
   await checkAndClickSelector('span[aria-describedby="Avanti"],span[aria-describedby="Prosegui"] button');
   if (result.error) {
     return result;
@@ -141,7 +139,7 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   console.log(`Posti disponibili:`, result);
   const [found] = result.appuntamenti
     .filter(({ isGoodDate, isGoodPlace }) => isGoodDate && isGoodPlace)
-    .sort((a, b) => b.date - a.date);
+    .sort((a, b) => a.date - b.date);
   result.found = found;
   if (!result.found) {
     console.log(`${ricetta} Non ho trovato nulla`);
@@ -175,7 +173,7 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
     if (presaVisione) {
       console.log(`${ricetta} Presa visione`);
       await page.click('span[aria-describedby="Conferma presa visione"] button');
-      await new Promise(r => setTimeout(r, 5_000));
+      await new Promise(r => setTimeout(r, 2_000));
       return;
     }
     return await seeNotes(counter + 1);
