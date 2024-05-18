@@ -23,7 +23,7 @@ function randomIntFromInterval(min, max) {
 }
 
 class TelegramBot {
-  _ricette = new Set();
+  _ricette = new Map();
   bot;
   constructor() {
     this.bot = new Bot(TOKEN, { polling: true });
@@ -35,6 +35,7 @@ class TelegramBot {
       { command: 'help', description: 'Mostra un help' },
     ]);
     this.bot.onText(/\/help/, this._help.bind(this));
+    this.bot.onText(/\/status/, this._status.bind(this));
     this.bot.onText(
       /\/prenota ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?([0-9]*)? ?([a-z0-9\[\]\-\*\.]*)? ?([a-z0-9\[\]\-\*\.]*)?/i,
       this._reserve.bind(this)
@@ -47,8 +48,20 @@ class TelegramBot {
       chatId,
       `I comandi disponibili sono i seguenti:
 - /prenota: Richiedi prenotazione codice_fiscale ricetta [maxDays] [cap regexp] [indirizzo regexp]
+- /status: Le ricette ricercate`
 - /help: Questo help`
     );
+  }
+  async _status(msg) {
+    const chatId = msg.chat.id;
+    let previousMessage;
+    const results = Array.from(this._ricette.values());
+    const text = results
+      .filter(result => result.chatId === chatId)
+      .map(result => `**${result.cf} ${result.ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
+      `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
+    ).join('\n')}`).join('-------');
+    previousMessage = await this.bot.sendMessage(chatId, text,  { parseMode: 'Markdown' });
   }
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
@@ -58,19 +71,20 @@ class TelegramBot {
       await this.bot.sendMessage(chatId, `Sto già cercando di prenotare questa ricetta!`);
       return;
     }
-    this._ricette.add(ricetta);
+    this._ricette.set(ricetta, null);
     let result = {};
     let counter = 1;
     let previousMessage;
     await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
     while (true) {
       try {
-        result = await reserve({ cf, ricetta, maxDays, zipFilter, addressFilter });
+        result = await reserve({ chatId, cf, ricetta, maxDays, zipFilter, addressFilter });
+        this._ricette.set(ricetta, result);
         if (result.appuntamenti.length > 0) {
           if (previousMessage) {
             await this.bot.deleteMessage(chatId, previousMessage.message_id);
           }
-          previousMessage = await this.bot.sendMessage(chatId, `**${cf} ${ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
+          previousMessage = await this.bot.sendMessage(chatId, `**${result.cf} ${result.ricetta}** :: ${result.info}${result.appuntamenti.map(({ date, address, isGoodDate, isGoodPlace}) =>
               `- ${format(date, 'EEE dd/MM/yy H:mm', { locale })} ${address} || Posizione: ${isGoodPlace ? '✅': '❌'} Data: ${isGoodDate ? '✅': '❌'}`
           ).join('\n')}`,  { parseMode: 'Markdown' });
         }

@@ -12,9 +12,9 @@ const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
  * @param maxDays
  * @param zipFilter
  * @param addressFilter
- * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}], confirmed: {date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}, images: [Buffer], info: string}>}
+ * @returns {Promise<{appuntamenti: [{date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}], confirmed: {date: Date, address: string, isGoodDate: boolean, isGoodPlace: boolean}, images: [Buffer], info: string, cf: string, ricetta: string, chatId: string}>}
  */
-async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]', addressFilter = '.*' }) {
+async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]', addressFilter = '.*' }) {
   // console.log(`Cerco di prenotare ${cf} ${ricetta} ${phone} ${email} tentativo ${counter}`);
   const result = {
     info: undefined,
@@ -23,6 +23,9 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
     error: undefined,
     appuntamenti: [],
     images: [],
+    cf,
+    ricetta,
+    chatId
   };
   const browser = await puppeteer.launch({
     // headless: false,
