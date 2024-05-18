@@ -48,7 +48,7 @@ class TelegramBot {
       chatId,
       `I comandi disponibili sono i seguenti:
 - /prenota: Richiedi prenotazione codice_fiscale ricetta [maxDays] [cap regexp] [indirizzo regexp]
-- /status: Le ricette ricercate`
+- /status: Le ricette ricercate
 - /help: Questo help`
     );
   }
