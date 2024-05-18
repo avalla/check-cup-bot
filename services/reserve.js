@@ -58,6 +58,9 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
       result.error = message;
       result.images.push(await page.screenshot({ fullPage: true }));
       await browser.close();
+      if (browser && browser.process() != null) {
+        browser.process().kill('SIGINT');
+      }
     }
     return true;
   }
@@ -145,6 +148,9 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   if (!result.found) {
     console.log(`${ricetta} Non ho trovato nulla`);
     await browser.close();
+    if (browser && browser.process() != null) {
+      browser.process().kill('SIGINT');
+    }
     return result;
   }
   console.log(`${ricetta} Ho trovato qualcosa...`);
@@ -198,6 +204,9 @@ async function reserve({ cf, ricetta, maxDays = 30, zipFilter = '101[0-9][0-9]',
   result.confirmed = result.found;
 
   await browser.close();
+  if (browser && browser.process() != null) {
+    browser.process().kill('SIGINT');
+  }
   return result;
 }
 
