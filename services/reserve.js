@@ -110,31 +110,8 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     const goodZip = new RegExp(zipFilter).test(zip); // Cerca in zone comode...
     const goodAddress = new RegExp(addressFilter, 'i').test(address); // Cerca indirizzo...
     // const isGoodPlace = /101[0-9]{2}/.test(zip); //  // Cerca in zone comode...Cerca in zone comode...
-
     const isGoodDate = difference > 0 && difference <= maxDays;
     const isGoodPlace = goodAddress && goodZip;
-    // console.log(ricetta, 'zipFilter', zipFilter)
-    // console.log(ricetta, `.*${addressFilter}.*`, addressFilter)
-    // if (difference > 0 && difference <= 30) {
-    //   isGood += 1;
-    // }
-    // if (difference > 0 && difference <= 60) {
-    //   isGood += 1;
-    // }
-    // if (difference > 0 && difference <= 90) {
-    //   isGood += 1;
-    // }
-    // if (isGood > 0 && isGoodPlace) {
-    //   isGood += 1;
-    // }
-    // const friendlyDate = format(date, 'EEEE d MMMM yyyy HH:mm', { locale });
-    // if (!isGood) {
-    //   console.log(`${ricetta} il ${friendlyDate} è un po' troppo lontano, vero? sono ben ${difference} giorni`);
-    // }
-    // if (isSameDay(date, new Date('2024-04-24')) && isBefore(date, new Date('2024-04-24 10:30'))) {
-    //   console.log(`${ricetta} il ${friendlyDate} è prima dell'orario`);
-    //   isGood -= 1;
-    // }
     result.appuntamenti.push({
       index: i,
       isGoodPlace,
