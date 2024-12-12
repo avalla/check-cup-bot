@@ -1,0 +1,12 @@
+{
+  "apps": [
+    {
+      "name": "check-cup",
+      "script": "main.js",
+      "interpreter": "/root/.bun/bin/bun",
+      "instances": "1",
+      "log_date_format": "YYYY-MM-DD HH:mm:ss Z"
+    }
+  ]
+}
+

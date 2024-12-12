@@ -5,13 +5,13 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "start": "bun run main.js"
+    "start": "node main.js"
   },
   "dependencies": {
     "date-fns": "^2.30.0",
     "dotenv": "^16.3.1",
-    "node-telegram-bot-api": "^0.63.0",
-    "puppeteer": "^21.3.6"
+    "node-telegram-bot-api": "^0.66.0",
+    "puppeteer": "^23.10.3"
   },
   "devDependencies": {
     "eslint": "^8.47.0",

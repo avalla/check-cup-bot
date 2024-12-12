@@ -28,9 +28,9 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     chatId
   };
   const browser = await puppeteer.launch({
-    // headless: false,
-    headless: 'new',
-    args: [`--window-size=1920,1080`],
+    headless: false,
+    // headless: 'new',
+    args: [`--window-size=1920,1080`, '--no-sandbox', "--disabled-setupid-sandbox"],
     defaultViewport: { width: 1920, height: 1080 },
   });
   const page = await browser.newPage();
@@ -50,7 +50,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     const [selectorFound] = await page.$$(selector);
     if (selectorFound) {
       await page.click(selector);
-      await new Promise((r) => setTimeout(r, 5_000));
+      await new Promise((r) => setTimeout(r, 10_000));
     }
     const [warning] = await page.$$('.messagifyMsg.alert-danger span');
     if (warning && counter < 5) {
@@ -83,14 +83,13 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
   const infos = await page.$$('.prestazioneRow .infoValue');
   const info = await infos[2]?.evaluate((el) => el.textContent);
   result.info = `${info}\n`;
-  result.images.push(await page.screenshot({ fullPage: true }));
-  await checkAndClickSelector('span[aria-describedby="Avanti"] button');
+  await checkAndClickSelector('span[aria-describedby="Avanti"],span[aria-describedby="Prosegui"] button');
 
   // PAGE 3 (appointments)
   await page.waitForSelector('[name="_ricettaelettronica_WAR_cupprenotazione_:appuntamentiForm"],.no-available');
   console.log(`${ricetta} page 3`)
   result.images.push(await page.screenshot({ fullPage: true }));
-  await page.click('span[aria-describedby="Altre disponibilità"] button');
+  await checkAndClickSelector('span[aria-describedby="Altre disponibilità"] button');
   await page.waitForSelector('#availableAppointmentsBlock');
   result.images.push(await page.screenshot({ fullPage: true }));
   const appuntamenti = await page.$$('#availableAppointmentsBlock .appuntamento');
