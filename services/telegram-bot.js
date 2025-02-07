@@ -74,7 +74,7 @@ class TelegramBot {
     let result = {};
     let counter = 1;
     let previousMessage;
-    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
+    await this.bot.sendMessage(chatId, `Ok proverò a cercare una visita ${ricetta} a ${maxDays} giorni di distanza, filtro cap: ${zipFilter || 'N/A'} e filtro indirizzo:${addressFilter ||  'N/A'}`);
     while (true) {
       try {
         result = await reserve({ chatId, cf, ricetta, maxDays, zipFilter, addressFilter });
@@ -94,7 +94,7 @@ class TelegramBot {
       if (result.confirmed || result.error) {
         break;
       }
-      const minutes = randomIntFromInterval(0, 2);
+      const minutes = randomIntFromInterval(2, 5)*60;
       const seconds = randomIntFromInterval(0, 60);
       if (counter % 50 === 0) {
         await this.bot.sendMessage(
@@ -102,8 +102,8 @@ class TelegramBot {
           `Ho fatto ${counter} tentativi per prenotare la ${ricetta}`
         );
       }
-      console.log(`${ricetta} aspetto ${minutes * seconds} secondi`)
-      await new Promise((r) => setTimeout(r, minutes * seconds * 1_000));
+      console.log(`${ricetta} aspetto ${minutes + seconds} secondi`)
+      await new Promise((r) => setTimeout(r, (minutes + seconds) * 1_000));
       counter++;
     }
     switch (true) {
@@ -122,6 +122,7 @@ class TelegramBot {
         for (const image of result.images) {
           await this.bot.sendPhoto(chatId, image);
         }
+
         await this.bot.sendMessage(chatId, `Rimuovo ${cf} ${ricetta}\n${result.error}`);
         break;
     }

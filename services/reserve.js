@@ -28,8 +28,8 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     chatId
   };
   const browser = await puppeteer.launch({
-    headless: false,
-    // headless: 'new',
+    // headless: false,
+    headless: 'new',
     args: [`--window-size=1920,1080`, '--no-sandbox', "--disabled-setupid-sandbox"],
     defaultViewport: { width: 1920, height: 1080 },
   });
