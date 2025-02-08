@@ -6,6 +6,8 @@ import dotenv from 'dotenv';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow/index.js';
 import Bot from 'node-telegram-bot-api';
 import reserve from './reserve.js';
+import { fileURLToPath } from 'url';
+
 dotenv.config();
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
@@ -34,7 +36,9 @@ class TelegramBot {
   }
 
   _loadRicette() {
-    const filePath = path.join(__dirname, 'ricette.json');
+    const __filename = fileURLToPath(import.meta.url);
+    const __dirname = path.dirname(__filename);
+    const filePath = path.join(__dirname, '..', 'ricette.json');
     try {
       const data = fs.readFileSync(filePath, 'utf8');
       const ricette = JSON.parse(data);
