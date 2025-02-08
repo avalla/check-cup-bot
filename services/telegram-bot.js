@@ -134,7 +134,7 @@ class TelegramBot {
         break;
       }
 
-      const minutes = randomIntFromInterval(2, 5) * 60;
+      const minutes = randomIntFromInterval(0, 2) * 60;
       const seconds = randomIntFromInterval(0, 60);
       if (counter % 10 === 0) {
         await this.bot.sendMessage(
