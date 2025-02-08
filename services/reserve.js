@@ -119,7 +119,9 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
       address,
     });
   }
-  console.log(`Posti disponibili:`, result);
+  const printable = Object.assign(result);
+  delete printable.images;
+  console.log(`Posti disponibili:`, printable);
   const [found] = result.appuntamenti
     .filter(({ isGoodDate, isGoodPlace }) => isGoodDate && isGoodPlace)
     .sort((a, b) => a.date - b.date);
