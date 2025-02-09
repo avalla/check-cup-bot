@@ -127,7 +127,6 @@ class TelegramBot {
       } catch (error) {
         await this.bot.sendMessage(chatId, `Scusa, c'è stato un errore :( ${error}. Riprova più tardi o contatta il supporto.`);
         console.error(error);
-        break;
       }
 
       if (result.confirmed || result.error) {
