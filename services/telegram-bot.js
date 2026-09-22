@@ -1,11 +1,9 @@
-import fs from 'fs';
-import path from 'path';
 import format from 'date-fns/format/index.js';
 import locale from 'date-fns/locale/it/index.js';
 import formatDistanceToNow from 'date-fns/formatDistanceToNow/index.js';
 import Bot from 'node-telegram-bot-api';
 import reserve from './reserve.js';
-import { fileURLToPath } from 'url';
+import { loadRequests, saveRequests } from './store.js';
 
 const TOKEN = process.env.TELEGRAM_TOKEN;
 if (!TOKEN) {
@@ -18,15 +16,17 @@ const ALLOWED_CHAT_IDS = (process.env.CHAT_IDS ?? '')
   .filter(Boolean);
 const MAX_ATTEMPTS = 500;
 const DEFAULT_MAX_DAYS = 30;
+// Alla ripresa le ricerche partono scaglionate: ognuna apre un Chromium.
+const RESUME_STAGGER_MS = 10_000;
 
 // Nei gruppi Telegram autocompleta i comandi come "/help@nome_bot": il suffisso va accettato.
 const MENTION = '(?:@\\w+)?';
 const HELP_RE = new RegExp(`^/(?:help|start)${MENTION}$`, 'i');
 const STATUS_RE = new RegExp(`^/status${MENTION}$`, 'i');
-const STOP_RE = new RegExp(`^/stop${MENTION} (010A2[0-9]+)$`, 'i');
+const STOP_RE = new RegExp(`^/stop${MENTION} (010A[0-9]{11})$`, 'i');
 // La regex del codice fiscale è delicata: non toccarla senza test di equivalenza.
 const PRENOTA_RE =
-  /^\/prenota(?:@\w+)? ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A2[0-9]+) ?([0-9]*)? ?([a-z0-9[\]()|\-*.]*)? ?([a-z0-9[\]()|\-*.]*)?/i;
+  /^\/prenota(?:@\w+)? ((?:[A-Z][AEIOU][AEIOUX]|[AEIOU]X{2}|[B-DF-HJ-NP-TV-Z]{2}[A-Z]){2}(?:[\dLMNP-V]{2}(?:[A-EHLMPR-T](?:[04LQ][1-9MNP-V]|[15MR][\dLMNP-V]|[26NS][0-8LMNP-U])|[DHPS][37PT][0L]|[ACELMRT][37PT][01LM]|[AC-EHLMPR-T][26NS][9V])|(?:[02468LNQSU][048LQU]|[13579MPRTV][26NS])B[26NS][9V])(?:[A-MZ][1-9MNP-V][\dLMNP-V]{2}|[A-M][0L](?:[1-9MNP-V][\dLMNP-V]|[0L][1-9MNP-V]))[A-Z]) (010A[0-9]{11}) ?([0-9]*)? ?([a-z0-9[\]()|\-*.]*)? ?([a-z0-9[\]()|\-*.]*)?/i;
 const COMMAND_REGEXPS = [HELP_RE, STATUS_RE, STOP_RE, PRENOTA_RE];
 
 function printMsgInfo(msg) {
@@ -53,33 +53,35 @@ function formatAppuntamenti(result) {
   return `${result.cf} ${result.ricetta} :: ${result.info}${righe.join('\n')}`;
 }
 
+function emptyResult(request) {
+  return {
+    info: undefined,
+    found: undefined,
+    confirmed: undefined,
+    error: undefined,
+    appuntamenti: [],
+    images: [],
+    cf: request.cf,
+    ricetta: request.ricetta,
+    chatId: request.chatId,
+  };
+}
+
 class TelegramBot {
+  /** ricetta -> { request, result }. Solo `request` finisce su disco: `result` contiene le screenshot. */
   _ricette = new Map();
   bot;
+
   constructor() {
     this.bot = new Bot(TOKEN, { polling: true });
     console.log('Bot started... 🚀');
     if (ALLOWED_CHAT_IDS.length === 0) {
       console.warn('⚠️  CHAT_IDS non configurato: il bot accetta comandi da chiunque.');
     }
-    this._loadRicette();
   }
 
-  _loadRicette() {
-    const __filename = fileURLToPath(import.meta.url);
-    const __dirname = path.dirname(__filename);
-    const filePath = path.join(__dirname, '..', 'ricette.json');
-    try {
-      const data = fs.readFileSync(filePath, 'utf8');
-      const ricette = JSON.parse(data);
-      ricette.forEach((item) => {
-        const [ricetta, details] = Object.entries(item)[0];
-        this._ricette.set(ricetta, details);
-      });
-      console.log('Ricette loaded:', this._ricette);
-    } catch (error) {
-      console.error('Error loading ricette:', error);
-    }
+  _persist() {
+    saveRequests(Array.from(this._ricette.values()).map(({ request }) => request));
   }
 
   _isAllowed(msg) {
@@ -119,6 +121,35 @@ class TelegramBot {
     }
     // Fallback: senza questo qualsiasi comando malformato sparisce nel nulla.
     this.bot.on('message', (msg) => this._fallback(msg).catch((error) => console.error(error)));
+
+    this._resume();
+  }
+
+  /** Riprende le ricerche interrotte da un riavvio, avvisando la chat che le aveva chieste. */
+  _resume() {
+    const requests = loadRequests();
+    if (requests.length === 0) {
+      return;
+    }
+    console.log(`Riprendo ${requests.length} ricerche interrotte.`);
+    for (const request of requests) {
+      this._ricette.set(request.ricetta, { request, result: emptyResult(request) });
+    }
+    this._persist();
+
+    requests.forEach((request, index) => {
+      (async () => {
+        await this.bot.sendMessage(
+          request.chatId,
+          `Il bot è stato riavviato: riprendo a cercare ${request.ricetta} per ${request.cf}.`
+        );
+        await new Promise((r) => setTimeout(r, index * RESUME_STAGGER_MS));
+        // /stop può essere arrivato durante l'attesa.
+        if (this._ricette.has(request.ricetta)) {
+          await this._runSearch(request);
+        }
+      })().catch((error) => console.error(`${request.ricetta} ripresa fallita`, error));
+    });
   }
 
   async _fallback(msg) {
@@ -149,8 +180,8 @@ class TelegramBot {
   async _status(msg) {
     const chatId = msg.chat.id;
     const text = Array.from(this._ricette.values())
-      .filter((result) => result?.chatId === chatId)
-      .map(formatAppuntamenti)
+      .filter(({ request }) => request.chatId === chatId)
+      .map(({ result }) => formatAppuntamenti(result))
       .join('\n-------\n');
     await this.bot.sendMessage(chatId, text || 'Ancora nessuna informazione...');
   }
@@ -163,47 +194,51 @@ class TelegramBot {
       return;
     }
     this._ricette.delete(ricetta);
+    this._persist();
     await this.bot.sendMessage(chatId, `Ok, interrompo la ricerca di ${ricetta} al prossimo controllo.`);
   }
 
   async _reserve(msg, match) {
     const chatId = msg.chat.id;
     const [, cf, ricetta, maxDaysRaw, zipFilter, addressFilter] = match;
-    const maxDays = maxDaysRaw ? Number(maxDaysRaw) : DEFAULT_MAX_DAYS;
+    const request = {
+      ricetta,
+      cf,
+      chatId,
+      maxDays: maxDaysRaw ? Number(maxDaysRaw) : DEFAULT_MAX_DAYS,
+      zipFilter,
+      addressFilter,
+    };
     if (this._ricette.has(ricetta)) {
       await this.bot.sendMessage(chatId, `Sto già cercando di prenotare questa ricetta!`);
       return;
     }
-    this._ricette.set(ricetta, null);
-    let result = {
-      info: undefined,
-      found: undefined,
-      confirmed: undefined,
-      error: undefined,
-      appuntamenti: [],
-      images: [],
-      cf,
-      ricetta,
-      chatId,
-    };
-    let counter = 1;
-    let previousMessage;
-    let previousPhotoMessageId;
+    this._ricette.set(ricetta, { request, result: emptyResult(request) });
+    this._persist();
     await this.bot.sendMessage(
       chatId,
-      `Ok proverò a cercare una visita ${ricetta} a ${maxDays} giorni di distanza, filtro cap: ${
+      `Ok proverò a cercare una visita ${ricetta} a ${request.maxDays} giorni di distanza, filtro cap: ${
         zipFilter || 'N/A'
       } e filtro indirizzo: ${addressFilter || 'N/A'}`
     );
+    await this._runSearch(request);
+  }
+
+  async _runSearch(request) {
+    const { ricetta, cf, chatId } = request;
+    let result = emptyResult(request);
+    let counter = 1;
+    let previousMessage;
+    let previousPhotoMessageId;
 
     while (true) {
       try {
-        result = await reserve({ chatId, cf, ricetta, maxDays, zipFilter, addressFilter });
+        result = await reserve(request);
         // La ricerca può essere stata interrotta da /stop mentre reserve() era in corso.
         if (!this._ricette.has(ricetta)) {
           return;
         }
-        this._ricette.set(ricetta, result);
+        this._ricette.set(ricetta, { request, result });
 
         if (result.appuntamenti.length > 0) {
           if (previousMessage) {
@@ -271,6 +306,7 @@ class TelegramBot {
       await this.bot.sendMessage(chatId, `Rimuovo ${cf} ${ricetta}\n${result.error}`);
     }
     this._ricette.delete(ricetta);
+    this._persist();
   }
 }
 

@@ -29,6 +29,19 @@ Bun carica automaticamente il file `.env`.
 | ---------------- | --------------------------------------------------------------------------------- |
 | `TELEGRAM_TOKEN` | Token del bot (obbligatorio).                                                     |
 | `CHAT_IDS`       | Chat ID autorizzate, separate da virgola. Se vuoto **chiunque** può usare il bot. |
+| `RICETTE_FILE`   | Percorso dello stato. Default: `ricette.json` nella root del progetto.            |
+
+### Stato delle ricerche
+
+Le ricerche in corso sono salvate in `ricette.json`, che il bot **scrive da solo**
+a ogni `/prenota` e a ogni `/stop`: non va creato a mano e se manca il bot parte
+senza ricerche memorizzate. La scrittura è atomica (file temporaneo + rename) e il
+file ha permessi `0600` perché contiene codici fiscali. È gitignorato: il formato
+è documentato in `ricette.json.example`.
+
+Al riavvio il bot **riprende le ricerche interrotte** e lo comunica alla chat che
+le aveva richieste. Le voci senza `cf` o `chat_id` vengono saltate con un warning.
+Vengono salvati solo i parametri della richiesta, mai le screenshot.
 
 ### Dipendenze di sistema (Linux)
 

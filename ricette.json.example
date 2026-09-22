@@ -2,6 +2,7 @@
   {
     "010A21234567890": {
       "cf": "RSSMRA85L14H501M",
+      "chat_id": 123456789,
       "giorni_max": 45,
       "filtro_cap": "(101.*|N.*)",
       "filtro": ".*"
