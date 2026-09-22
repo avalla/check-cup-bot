@@ -13,3 +13,5 @@ node_modules
 ~*.docx
 tmp
 _deprecated
+
+ricette.json

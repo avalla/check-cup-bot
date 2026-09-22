@@ -1,0 +1,10 @@
+node_modules
+.git
+.idea
+.env
+ricette.json
+yarn.lock
+*.orig
+tmp
+_deprecated
+README.md
