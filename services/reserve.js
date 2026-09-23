@@ -1,12 +1,19 @@
-import puppeteer from 'puppeteer';
+import puppeteer from 'puppeteer-extra';
+import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import locale from 'date-fns/locale/it/index.js';
 import parse from 'date-fns/parse/index.js';
 import differenceInCalendarDays from 'date-fns/differenceInCalendarDays/index.js';
+
+// Riduce il fingerprint da automazione (navigator.webdriver, plugin mancanti, ecc.)
+// che reCAPTCHA v3 penalizza pesantemente sui browser headless.
+puppeteer.use(StealthPlugin());
 
 const CUP_URL = 'https://cup.isan.csi.it/web/guest/ricetta-dematerializzata';
 
 const MAX_WARNING_RETRIES = 5;
 const MAX_NOTES_RETRIES = 5;
+// Guasto noto e transitorio del backend nazionale ricette: va ritentato, non abbandonato.
+const TRANSIENT_ERROR_MESSAGES = ['Impossibile recuperare la ricetta dematerializzata'];
 
 /**
  * page.screenshot() ritorna un Uint8Array: node-telegram-bot-api riconosce solo i Buffer
@@ -32,16 +39,21 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     found: undefined,
     confirmed: undefined,
     error: undefined,
+    transientRetry: undefined,
     appuntamenti: [],
     images: [],
     cf,
     ricetta,
     chatId,
   };
+  // Instrada Chromium su un tunnel SSH (es. `ssh -N -R 1080 host`) per uscire con un IP italiano.
+  const proxyArgs = process.env.PROXY_SERVER ? [`--proxy-server=${process.env.PROXY_SERVER}`] : [];
+  // Headless viene rilevato e penalizzato dal reCAPTCHA v3 del CUP: HEADLESS=false in .env fa
+  // girare Chromium "headed" (serve un display, vero o virtuale via Xvfb + DISPLAY) per uno score migliore.
+  const headless = process.env.HEADLESS === 'false' ? false : 'new';
   const browser = await puppeteer.launch({
-    // headless: false,
-    headless: 'new',
-    args: [`--window-size=1920,1080`, '--no-sandbox', '--disable-setuid-sandbox'],
+    headless,
+    args: [`--window-size=1920,1080`, '--no-sandbox', '--disable-setuid-sandbox', ...proxyArgs],
     defaultViewport: { width: 1920, height: 1080 },
   });
 
@@ -51,7 +63,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     page.setDefaultTimeout(2 * 60_000);
 
     const checkAndClickSelector = async (selector, counter = 0) => {
-      if (result.error) {
+      if (result.error || result.transientRetry) {
         return false;
       }
       await new Promise((r) => setTimeout(r, 10_000));
@@ -66,7 +78,11 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
       } else if (warning) {
         const message = await warning?.evaluate((el) => el.textContent);
         console.log(`${ricetta} errore ${message}`);
-        result.error = message;
+        if (TRANSIENT_ERROR_MESSAGES.includes(message?.trim())) {
+          result.transientRetry = message;
+        } else {
+          result.error = message;
+        }
         result.images.push(await screenshot(page));
         return false;
       }
@@ -79,7 +95,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     await page.$eval('input.nreInput-bt', (el, value) => (el.value = value), ricetta);
     await new Promise((r) => setTimeout(r, 2_000));
     await checkAndClickSelector('span[aria-describedby="Avanti"],span[aria-describedby="Prosegui"] button');
-    if (result.error) {
+    if (result.error || result.transientRetry) {
       return result;
     }
 
@@ -89,7 +105,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     const info = await infos[2]?.evaluate((el) => el.textContent);
     result.info = `${info}\n`;
     await checkAndClickSelector('span[aria-describedby="Avanti"],span[aria-describedby="Prosegui"] button');
-    if (result.error) {
+    if (result.error || result.transientRetry) {
       return result;
     }
 
@@ -98,7 +114,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     console.log(`${ricetta} page 3`);
     result.images.push(await screenshot(page));
     await checkAndClickSelector('span[aria-describedby="Altre disponibilità"] button');
-    if (result.error) {
+    if (result.error || result.transientRetry) {
       return result;
     }
     await page.waitForSelector('#availableAppointmentsBlock');
@@ -146,12 +162,12 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
       await checkAndClickSelector(
         `.disponibiliPanel:nth-child(${found.index + 1}) span[aria-describedby="Seleziona"] button`
       );
-      if (result.error) {
+      if (result.error || result.transientRetry) {
         return result;
       }
     }
     await checkAndClickSelector('span[aria-describedby="Avanti"] button');
-    if (result.error) {
+    if (result.error || result.transientRetry) {
       return result;
     }
 
@@ -186,7 +202,7 @@ async function reserve({ chatId, cf, ricetta, maxDays = 30, zipFilter = '101[0-9
     }
 
     await checkAndClickSelector('span[aria-describedby="Conferma"] button');
-    if (result.error) {
+    if (result.error || result.transientRetry) {
       return result;
     }
 

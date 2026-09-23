@@ -30,6 +30,8 @@ Bun carica automaticamente il file `.env`.
 | `TELEGRAM_TOKEN` | Token del bot (obbligatorio).                                                     |
 | `CHAT_IDS`       | Chat ID autorizzate, separate da virgola. Se vuoto **chiunque** può usare il bot. |
 | `RICETTE_FILE`   | Percorso dello stato. Default: `ricette.json` nella root del progetto.            |
+| `PROXY_SERVER`   | Proxy per Chromium (es. `socks5://127.0.0.1:1080` da un tunnel SSH `-R`), utile per uscire con un IP italiano se il bot gira su un server estero. Opzionale. |
+| `HEADLESS`       | Se `false`, Chromium gira "headed" invece che headless: serve un display (reale o virtuale via Xvfb + `DISPLAY`). Consigliato se il sito del CUP penalizza i browser headless. Default: headless. |
 
 ### Stato delle ricerche
 
